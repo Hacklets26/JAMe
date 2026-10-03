@@ -1,0 +1,6 @@
+run: true
+version: '1.0-dev.1'
+description: |
+  Dev 1:
+  - Initial release
+    - Core scaffold and logic for main modules
