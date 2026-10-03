@@ -1,12 +1,21 @@
 '''Integration tests for JAMe's public API.'''
 
 import shutil
+import tempfile
 from pathlib import Path
 
 import jame
 from jame import Jame
+from mapres import ascii_colors as ascii_map
+from mapres import res, setGlobalMaps
 
 FILES = Path(__file__).parent / 'files'
+
+setGlobalMaps(ascii_map)
+
+
+def _print_colored(text):
+    print(res(text))
 
 
 def test_file_type_and_strings_read_real_file():
@@ -17,8 +26,8 @@ def test_file_type_and_strings_read_real_file():
     file_type = engine.getFileType(str(sample))
     strings = engine.runStrings(str(sample))
 
-    print(f'getFileType: {file_type}')
-    print(f'runStrings: {strings}')
+    _print_colored(f'<aqua>getFileType:<reset> {file_type}')
+    _print_colored(f'<green>runStrings:<reset> {strings}')
 
     assert file_type == 'text file'
     assert 'Visible message for strings testing.' in strings
@@ -29,7 +38,7 @@ def test_find_flag_matches_fixed_wildcard_count():
     sample = FILES / 'challenge.txt'
 
     flag = Jame().findFlag(str(sample), 'hcr{*4}')
-    print(f'findFlag fixed count: {flag}')
+    _print_colored(f'<green>findFlag fixed count:<reset> {flag}')
 
     assert flag == 'hcr{abcd}'
 
@@ -39,7 +48,7 @@ def test_find_flag_matches_escaped_literal_suffix():
     sample = FILES / 'challenge.txt'
 
     flag = Jame().findFlag(str(sample), r'flag{*2-******\2}')
-    print(f'findFlag escaped suffix: {flag}')
+    _print_colored(f'<green>findFlag escaped suffix:<reset> {flag}')
 
     assert flag == 'flag{ab-abcdef2}'
 
@@ -49,7 +58,7 @@ def test_auto_solve_finds_flag_in_real_file():
     sample = FILES / 'solution.txt'
 
     result = Jame().autoSolve(str(sample), format='flag{*}')
-    print(f'autoSolve: {result.summary}; flag={result.flag}')
+    _print_colored(f'<green>autoSolve:<reset> {result.summary}; flag={result.flag}')
 
     assert result.flag == 'flag{real_file_test}'
     assert 'Flag candidate found' in result.summary
@@ -60,7 +69,10 @@ def test_scan_file_returns_analysis_results():
     sample = FILES / 'scan.txt'
 
     result = Jame().scanFile(str(sample))
-    print(f'scanFile: type={result.file_type}; confidence={result.confidence}; {result.summary}')
+    _print_colored(
+        f'<aqua>scanFile:<reset> type={result.file_type}; '
+        f'confidence={result.confidence}; {result.summary}'
+    )
 
     assert result.file_type == 'text file'
     assert {'crypto', 'binary', 'stego', 'forensics'} <= result.details.keys()
@@ -72,7 +84,10 @@ def test_module_level_scan_file():
     sample = FILES / 'scan.txt'
 
     result = jame.scanFile(str(sample))
-    print(f'jame.scanFile: type={result.file_type}; confidence={result.confidence}')
+    _print_colored(
+        f'<aqua>jame.scanFile:<reset> type={result.file_type}; '
+        f'confidence={result.confidence}'
+    )
 
     assert result.file_type == 'text file'
     assert result.details
@@ -88,8 +103,8 @@ def test_module_level_configuration_persists_across_calls():
         jame.setVerbose(True)
 
         result = jame.autoSolve(str(sample))
-        print(
-            'module configuration: '
+        _print_colored(
+            '<yellow>module configuration:<reset> '
             f'flag_patterns={jame._engine.flag_patterns}; '
             f'max_depth={result.details["max_depth"]}; '
             f'verbose={result.details["verbose"]}; flag={result.flag}'
@@ -113,10 +128,10 @@ def test_category_analyzers_accept_real_file():
     stego = engine.stegoAnalyze(str(sample))
     forensics = engine.forensicsAnalyze(str(sample))
 
-    print(f'cryptoAnalyze: {crypto.summary} (confidence={crypto.confidence})')
-    print(f'binaryAnalyze: {binary.summary} (confidence={binary.confidence})')
-    print(f'stegoAnalyze: {stego.summary} (confidence={stego.confidence})')
-    print(f'forensicsAnalyze: {forensics.summary} (confidence={forensics.confidence})')
+    _print_colored(f'<aqua>cryptoAnalyze:<reset> {crypto.summary} (confidence={crypto.confidence})')
+    _print_colored(f'<aqua>binaryAnalyze:<reset> {binary.summary} (confidence={binary.confidence})')
+    _print_colored(f'<aqua>stegoAnalyze:<reset> {stego.summary} (confidence={stego.confidence})')
+    _print_colored(f'<aqua>forensicsAnalyze:<reset> {forensics.summary} (confidence={forensics.confidence})')
 
     assert crypto.file_path == str(sample)
     assert binary.file_path == str(sample)
@@ -130,7 +145,7 @@ def test_archive_extract_extracts_real_zip_file(tmp_path):
     shutil.copyfile(FILES / 'sample.zip', archive_path)
 
     extracted = Jame().archiveExtract(str(archive_path))
-    print(f'archiveExtract: {extracted}')
+    _print_colored(f'<green>archiveExtract:<reset> {extracted}')
 
     assert len(extracted) == 1
     assert (tmp_path / '.jame_extract' / 'payload.txt').read_text(encoding='utf-8') == 'archive payload'
@@ -139,7 +154,7 @@ def test_archive_extract_extracts_real_zip_file(tmp_path):
 def test_decode_caesar_with_explicit_shift():
     '''Decode a known Caesar ciphertext using the public method.'''
     result = Jame().decodeCaesar('Khoor', 3)
-    print(f'decodeCaesar: {result}')
+    _print_colored(f'<green>decodeCaesar:<reset> {result}')
 
     assert result == {'shift': 3, 'decoded': 'Hello'}
 
@@ -147,7 +162,7 @@ def test_decode_caesar_with_explicit_shift():
 def test_decode_caesar_bruteforce():
     '''Find the known Caesar plaintext among brute-force shift candidates.'''
     result = Jame().decodeCaesar('Khoor', 'brute')
-    print(f'decodeCaesar brute force: {result}')
+    _print_colored(f'<green>decodeCaesar brute force:<reset> {result}')
 
     candidates = result['results']
     assert len(candidates) == 25
@@ -167,8 +182,8 @@ def test_decode_caesar_bruteforce_long_english_sentences():
 
     for ciphertext, sentence, expected_shift in zip(ciphertexts, sentences, shifts):
         result = Jame().decodeCaesar(ciphertext, 'brute')
-        print(f'file ciphertext: {ciphertext}')
-        print(f'brute-force result: {result["best"]}')
+        _print_colored(f'<yellow>file ciphertext:<reset> {ciphertext}')
+        _print_colored(f'<green>brute-force result:<reset> {result["best"]}')
 
         assert result['best']['shift'] == expected_shift
         assert result['best']['decoded'] == sentence
@@ -180,8 +195,8 @@ def test_configuration_methods_update_instance():
     engine.setFlagPatterns(['ctf{*}'])
     engine.setMaxDepth(5)
     engine.setVerbose(True)
-    print(
-        'instance configuration: '
+    _print_colored(
+        '<yellow>instance configuration:<reset> '
         f'flag_patterns={engine.flag_patterns}; '
         f'max_depth={engine.max_depth}; verbose={engine.verbose}'
     )
@@ -196,11 +211,34 @@ def test_run_binwalk_returns_structured_result_for_file():
     sample = FILES / 'binary_sample.bin'
 
     result = Jame().runBinwalk(str(sample))
-    print(
-        f'runBinwalk: available={result.available}; '
+    _print_colored(
+        f'<aqua>runBinwalk:<reset> available={result.available}; '
         f'summary={result.summary}; matches={result.matches}'
     )
 
     assert result.file_path == str(sample)
     assert isinstance(result.available, bool)
     assert result.summary
+
+
+def run():
+    '''Run all API tests using their bundled files and a temporary archive directory.'''
+    test_file_type_and_strings_read_real_file()
+    test_find_flag_matches_fixed_wildcard_count()
+    test_find_flag_matches_escaped_literal_suffix()
+    test_auto_solve_finds_flag_in_real_file()
+    test_scan_file_returns_analysis_results()
+    test_module_level_scan_file()
+    test_module_level_configuration_persists_across_calls()
+    test_category_analyzers_accept_real_file()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_archive_extract_extracts_real_zip_file(Path(temp_dir))
+    test_decode_caesar_with_explicit_shift()
+    test_decode_caesar_bruteforce()
+    test_decode_caesar_bruteforce_long_english_sentences()
+    test_configuration_methods_update_instance()
+    test_run_binwalk_returns_structured_result_for_file()
+
+
+if __name__ == '__main__':
+    run()
