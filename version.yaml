@@ -1,5 +1,5 @@
 run: true
-version: '1.0-dev.2'
+version: '1.0-dev.3'
 description: |
   Dev 1:
   - Initial release
@@ -7,3 +7,5 @@ description: |
   Dev 2:
   - Added tests
   - Added results module sets
+  Dev 3:
+  - Added __init__ and __main__ to main modules
